@@ -26,9 +26,8 @@ export default {
       startupLog(`Loaded ${client.commands.size} commands`);
 
       // Start CRT monitoring
-      if (client.config?.features?.crt) {
         startCRTMonitor(client);
-      }
+    
 
       if (client.config?.features?.music) {
         initRiffyAfterReady(client);
