@@ -158,46 +158,36 @@ export const botConfig = {
   // =========================
   // CRT TRADING SETTINGS
   // =========================
-  crt: {
-    // Enable/disable the CRT system
-    enabled: true,
+ crt: {
+  enabled: true,
+  autoAlerts: true,
 
-    // Philippine Time
-    timezone: "Asia/Manila",
+  timezone: "Asia/Manila",
 
-    // Default CRT timeframe
-    timeframe: "15m",
-
-    // Available CRT timeframes
-    timeframes: {
-      "5m": 5,
-      "15m": 15,
-      "30m": 30,
-      "1h": 60,
-      "4h": 240,
-      "1d": 1440,
-    },
-    // Discord channel for each CRT timeframe
-      channels: {
-        "5m": "1536085497087135795",
-        "15m": "1536085573691773060",
-        "30m": "1536085618981871648",
-        "1h": "1536085667216367728",
-        "4h": "1536085721192857600",
-        "1d": "1536085794576404480",
-      },
-    // Automatically announce new CRT candles
-    autoAlerts: true,
-
-    // Check every 5 seconds
-    checkInterval: 5000,
-
-    // CRT embed color
-    color: "#5865F2",
-
-    // Footer
-    footer: "CRT • SAKAMOTO #1",
+  timeframes: {
+    "5m": 5,
+    "15m": 15,
+    "30m": 30,
+    "1h": 60,
+    "4h": 240,
+    "1d": 1440,
   },
+
+  channels: {
+    "5m": "1536085497087135795",
+    "15m": "1536085573691773060",
+    "30m": "1536085618981871648",
+    "1h": "1536085667216367728",
+    "4h": "1536085721192857600",
+    "1d": "1536085794576404480",
+  },
+
+  checkInterval: 5000,
+
+  color: "#5865F2",
+
+  footer: "CRT • PDYN",
+},
 
   // =========================
   // ECONOMY SETTINGS
