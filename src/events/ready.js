@@ -9,7 +9,7 @@ import {
 } from "../services/panelHealthService.js";
 import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
-import { startCRTMonitor } from "../crt/crtService.js";
+import { startCRTMonitor } from "../services/crt/crtService.js";
 
 export default {
   name: Events.ClientReady,
