@@ -177,7 +177,15 @@ export const botConfig = {
       "4h": 240,
       "1D": 1440,
     },
-
+    // Discord channel for each CRT timeframe
+      channels: {
+        "5m": "1536085497087135795",
+        "15m": "1536085573691773060",
+        "30m": "1536085618981871648",
+        "1h": "1536085667216367728",
+        "4h": "1536085721192857600",
+        "1d": "1536085794576404480",
+      },
     // Automatically announce new CRT candles
     autoAlerts: true,
 
