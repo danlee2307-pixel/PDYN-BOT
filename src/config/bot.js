@@ -154,6 +154,45 @@ export const botConfig = {
       url: null,
     },
   },
+  
+  // =========================
+  // CRT TRADING SETTINGS
+  // =========================
+  crt: {
+    // Enable/disable the CRT system
+    enabled: true,
+
+    // Philippine Time
+    timezone: "Asia/Manila",
+
+    // Default CRT timeframe
+    timeframe: "15m",
+
+    // Available CRT timeframes
+    timeframes: {
+      "5m": 5,
+      "15m": 15,
+      "30m": 30,
+      "1h": 60,
+      "4h": 240,
+      "1D": 1440,
+    },
+
+    // Discord channel that will receive CRT alerts
+    channelId: process.env.CRT_CHANNEL_ID || null,
+
+    // Automatically announce new CRT candles
+    autoAlerts: true,
+
+    // Check every 5 seconds
+    checkInterval: 5000,
+
+    // CRT embed color
+    color: "#5865F2",
+
+    // Footer
+    footer: "CRT • SAKAMOTO #1",
+  },
 
   // =========================
   // ECONOMY SETTINGS
@@ -474,6 +513,8 @@ export const botConfig = {
     community: true,
     fun: true,
     music: true,
+    // CRT Trading System
+    crt: true,
   },
 };
 
@@ -548,6 +589,7 @@ const COMMAND_CATEGORY_FEATURE_MAP = {
   utility: "utility",
   verification: "verification",
   welcome: "welcome",
+  crt: "crt",
 };
 
 function normalizeCategoryKey(category) {
