@@ -6,7 +6,7 @@ import botConfig from "../../config/bot.js";
 // ============================================================
 //
 // Supported CRT timeframes:
-// 5M, 15M, 30M, 1H, 4H, 1D
+// 5m, 15m, 30m, 1h, 4h, 1d
 //
 // Timezone:
 // Asia/Manila
@@ -20,9 +20,10 @@ import botConfig from "../../config/bot.js";
 // - Separate Discord channel for each timeframe
 //
 // IMPORTANT:
-// The monitor waits for a NEW candle before sending an alert.
-// Restarting Railway will NOT send an alert for the currently
-// active candle.
+// The monitor establishes the currently active candle as the
+// startup baseline. It will NOT send an alert for that candle.
+//
+// An alert is sent only when a NEW candle begins.
 // ============================================================
 
 
@@ -30,13 +31,16 @@ import botConfig from "../../config/bot.js";
 // CONFIGURATION
 // ============================================================
 
-const CRT_CONFIG = botConfig.crt || {};
+const CRT_CONFIG =
+  botConfig.crt || {};
 
 const CRT_TIMEZONE =
-  CRT_CONFIG.timezone || "Asia/Manila";
+  CRT_CONFIG.timezone ||
+  "Asia/Manila";
 
 const DEFAULT_TIMEFRAME =
-  CRT_CONFIG.timeframe || "15m";
+  CRT_CONFIG.timeframe ||
+  "15m";
 
 const TIMEFRAMES =
   CRT_CONFIG.timeframes || {
@@ -56,28 +60,45 @@ const CHANNELS =
 // TIMEZONE HELPERS
 // ============================================================
 
-function getZonedParts(date = new Date()) {
-  const formatter = new Intl.DateTimeFormat(
-    "en-US",
-    {
-      timeZone: CRT_TIMEZONE,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }
-  );
+function getZonedParts(
+  date = new Date()
+) {
+  const formatter =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone:
+          CRT_TIMEZONE,
+
+        year: "numeric",
+
+        month: "2-digit",
+
+        day: "2-digit",
+
+        hour: "2-digit",
+
+        minute: "2-digit",
+
+        second: "2-digit",
+
+        hourCycle: "h23",
+      }
+    );
 
   const parts =
-    formatter.formatToParts(date);
+    formatter.formatToParts(
+      date
+    );
 
   const result = {};
 
-  for (const part of parts) {
-    if (part.type !== "literal") {
+  for (
+    const part of parts
+  ) {
+    if (
+      part.type !== "literal"
+    ) {
       result[part.type] =
         Number(part.value);
     }
@@ -88,11 +109,13 @@ function getZonedParts(date = new Date()) {
 
 
 // ============================================================
-// CURRENT TIME
+// CURRENT CRT TIME
 // ============================================================
 
 export function getCRTNow() {
-  return getZonedParts(new Date());
+  return getZonedParts(
+    new Date()
+  );
 }
 
 
@@ -100,7 +123,9 @@ export function getCRTNow() {
 // VALIDATION
 // ============================================================
 
-export function isValidCRTTimeframe(timeframe) {
+export function isValidCRTTimeframe(
+  timeframe
+) {
   if (!timeframe) {
     return false;
   }
@@ -113,26 +138,41 @@ export function isValidCRTTimeframe(timeframe) {
 
 
 export function getAvailableCRTTimeframes() {
-  return Object.keys(TIMEFRAMES);
+  return Object.keys(
+    TIMEFRAMES
+  );
 }
 
 
 // ============================================================
-// DATE HELPERS
+// FORMAT HELPERS
 // ============================================================
 
 function pad(value) {
-  return String(value).padStart(2, "0");
+  return String(value)
+    .padStart(2, "0");
 }
 
 
-function formatDateParts(parts) {
-  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+function formatDateParts(
+  parts
+) {
+  return (
+    `${parts.year}-` +
+    `${pad(parts.month)}-` +
+    `${pad(parts.day)}`
+  );
 }
 
 
-function formatTimeParts(hour, minute) {
-  return `${pad(hour)}:${pad(minute)}`;
+function formatTimeParts(
+  hour,
+  minute
+) {
+  return (
+    `${pad(hour)}:` +
+    `${pad(minute)}`
+  );
 }
 
 
@@ -141,12 +181,26 @@ function formatTimeSeconds(
   minute,
   second
 ) {
-  return `${pad(hour)}:${pad(minute)}:${pad(second)}`;
+  return (
+    `${pad(hour)}:` +
+    `${pad(minute)}:` +
+    `${pad(second)}`
+  );
 }
 
 
 // ============================================================
-// MANILA → UTC
+// ASIA/MANILA COMPONENTS → UTC TIMESTAMP
+// ============================================================
+//
+// The Philippines uses UTC+8 year-round and does not observe
+// daylight saving time.
+//
+// Example:
+//
+// Manila 08:00
+// → UTC 00:00
+//
 // ============================================================
 
 function manilaComponentsToTimestamp(
@@ -211,19 +265,34 @@ export function getCurrentCRT(
   timeframe = DEFAULT_TIMEFRAME
 ) {
   timeframe =
-    String(timeframe).toLowerCase();
+    String(
+      timeframe
+    ).toLowerCase();
 
-  if (!isValidCRTTimeframe(timeframe)) {
+  // ==========================================================
+  // VALIDATE TIMEFRAME
+  // ==========================================================
+
+  if (
+    !isValidCRTTimeframe(
+      timeframe
+    )
+  ) {
     throw new Error(
       `Invalid CRT timeframe "${timeframe}". ` +
       `Available: ${
-        getAvailableCRTTimeframes().join(", ")
+        getAvailableCRTTimeframes()
+          .join(", ")
       }`
     );
   }
 
   const minutes =
-    TIMEFRAMES[timeframe];
+    Number(
+      TIMEFRAMES[
+        timeframe
+      ]
+    );
 
   const now =
     getCRTNow();
@@ -233,7 +302,9 @@ export function getCurrentCRT(
   // DAILY CRT
   // ==========================================================
 
-  if (timeframe === "1d") {
+  if (
+    timeframe === "1d"
+  ) {
     const nextDay =
       getNextDay(
         now.year,
@@ -267,18 +338,24 @@ export function getCurrentCRT(
       label: "DAILY",
 
       date:
-        formatDateParts(now),
+        formatDateParts(
+          now
+        ),
 
       startHour: 0,
+
       startMinute: 0,
 
       endHour: 0,
+
       endMinute: 0,
 
       startTime: "00:00",
+
       endTime: "00:00",
 
       startTimestamp,
+
       endTimestamp,
 
       timezone:
@@ -297,27 +374,33 @@ export function getCurrentCRT(
 
   const candleStartMinutes =
     Math.floor(
-      totalMinutes / minutes
+      totalMinutes /
+      minutes
     ) * minutes;
 
   const startHour =
     Math.floor(
-      candleStartMinutes / 60
+      candleStartMinutes /
+      60
     );
 
   const startMinute =
-    candleStartMinutes % 60;
+    candleStartMinutes %
+    60;
 
   const endTotalMinutes =
-    candleStartMinutes + minutes;
+    candleStartMinutes +
+    minutes;
 
   const endHour =
     Math.floor(
-      endTotalMinutes / 60
+      endTotalMinutes /
+      60
     ) % 24;
 
   const endMinute =
-    endTotalMinutes % 60;
+    endTotalMinutes %
+    60;
 
   let endYear =
     now.year;
@@ -329,7 +412,14 @@ export function getCurrentCRT(
     now.day;
 
 
-  if (endTotalMinutes >= 1440) {
+  // ==========================================================
+  // CANDLE CROSSES MIDNIGHT
+  // ==========================================================
+
+  if (
+    endTotalMinutes >=
+    1440
+  ) {
     const nextDay =
       getNextDay(
         now.year,
@@ -347,6 +437,10 @@ export function getCurrentCRT(
       nextDay.day;
   }
 
+
+  // ==========================================================
+  // TIMESTAMPS
+  // ==========================================================
 
   const startTimestamp =
     manilaComponentsToTimestamp(
@@ -369,6 +463,10 @@ export function getCurrentCRT(
     );
 
 
+  // ==========================================================
+  // RETURN CRT DATA
+  // ==========================================================
+
   return {
     timeframe,
 
@@ -376,12 +474,16 @@ export function getCurrentCRT(
       timeframe.toUpperCase(),
 
     date:
-      formatDateParts(now),
+      formatDateParts(
+        now
+      ),
 
     startHour,
+
     startMinute,
 
     endHour,
+
     endMinute,
 
     startTime:
@@ -397,6 +499,7 @@ export function getCurrentCRT(
       ),
 
     startTimestamp,
+
     endTimestamp,
 
     timezone:
@@ -413,33 +516,43 @@ export function getRemainingTime(
   timeframe = DEFAULT_TIMEFRAME
 ) {
   const crt =
-    getCurrentCRT(timeframe);
+    getCurrentCRT(
+      timeframe
+    );
 
   let remaining =
     crt.endTimestamp -
     Date.now();
 
-  if (remaining < 0) {
+  if (
+    remaining < 0
+  ) {
     remaining = 0;
   }
 
   const totalSeconds =
     Math.floor(
-      remaining / 1000
+      remaining /
+      1000
     );
 
   const hours =
     Math.floor(
-      totalSeconds / 3600
+      totalSeconds /
+      3600
     );
 
   const minutes =
     Math.floor(
-      (totalSeconds % 3600) / 60
+      (
+        totalSeconds %
+        3600
+      ) / 60
     );
 
   const seconds =
-    totalSeconds % 60;
+    totalSeconds %
+    60;
 
   return [
     pad(hours),
@@ -457,7 +570,9 @@ export function getCRTStatus(
   timeframe = DEFAULT_TIMEFRAME
 ) {
   const crt =
-    getCurrentCRT(timeframe);
+    getCurrentCRT(
+      timeframe
+    );
 
   const now =
     getCRTNow();
@@ -489,7 +604,9 @@ export function getCRTStatus(
       crt.endTime,
 
     remaining:
-      getRemainingTime(timeframe),
+      getRemainingTime(
+        timeframe
+      ),
 
     startTimestamp:
       crt.startTimestamp,
@@ -508,7 +625,9 @@ export function createCRTEmbed(
   timeframe = DEFAULT_TIMEFRAME
 ) {
   const status =
-    getCRTStatus(timeframe);
+    getCRTStatus(
+      timeframe
+    );
 
   return new EmbedBuilder()
 
@@ -625,12 +744,23 @@ function getTimeframeLabel(
   timeframe
 ) {
   const labels = {
-    "5m": "5 MINUTES",
-    "15m": "15 MINUTES",
-    "30m": "30 MINUTES",
-    "1h": "1 HOUR",
-    "4h": "4 HOURS",
-    "1d": "DAILY",
+    "5m":
+      "5 MINUTES",
+
+    "15m":
+      "15 MINUTES",
+
+    "30m":
+      "30 MINUTES",
+
+    "1h":
+      "1 HOUR",
+
+    "4h":
+      "4 HOURS",
+
+    "1d":
+      "DAILY",
   };
 
   return (
@@ -650,9 +780,14 @@ async function sendCRTAlert(
 ) {
   try {
 
-    const channelId =
-      CHANNELS[timeframe];
+    // ========================================================
+    // GET CHANNEL ID
+    // ========================================================
 
+    const channelId =
+      CHANNELS[
+        timeframe
+      ];
 
     if (!channelId) {
       console.warn(
@@ -663,11 +798,14 @@ async function sendCRTAlert(
     }
 
 
+    // ========================================================
+    // FETCH CHANNEL
+    // ========================================================
+
     const channel =
       await client.channels.fetch(
         channelId
       );
-
 
     if (!channel) {
       console.warn(
@@ -678,9 +816,35 @@ async function sendCRTAlert(
     }
 
 
-    const embed =
-      createCRTEmbed(timeframe);
+    // ========================================================
+    // VERIFY CHANNEL CAN RECEIVE MESSAGES
+    // ========================================================
 
+    if (
+      typeof channel.send !==
+      "function"
+    ) {
+      console.warn(
+        `[CRT] Channel ${channelId} does not support sending messages.`
+      );
+
+      return;
+    }
+
+
+    // ========================================================
+    // CREATE EMBED
+    // ========================================================
+
+    const embed =
+      createCRTEmbed(
+        timeframe
+      );
+
+
+    // ========================================================
+    // SEND ALERT
+    // ========================================================
 
     await channel.send({
       content:
@@ -689,10 +853,14 @@ async function sendCRTAlert(
         )} CRT CANDLE**`,
 
       embeds: [
-        embed
+        embed,
       ],
     });
 
+
+    // ========================================================
+    // LOG SUCCESS
+    // ========================================================
 
     console.log(
       `[CRT] ${timeframe} alert sent to channel ${channelId}`
@@ -720,7 +888,13 @@ export function startCRTMonitor(
   client
 ) {
 
-  if (crtMonitorStarted) {
+  // ==========================================================
+  // PREVENT DUPLICATE MONITORS
+  // ==========================================================
+
+  if (
+    crtMonitorStarted
+  ) {
     console.warn(
       "[CRT] Monitor is already running."
     );
@@ -729,8 +903,13 @@ export function startCRTMonitor(
   }
 
 
+  // ==========================================================
+  // CHECK ENABLED STATE
+  // ==========================================================
+
   if (
-    CRT_CONFIG.enabled === false
+    CRT_CONFIG.enabled ===
+    false
   ) {
     console.log(
       "[CRT] CRT system is disabled."
@@ -740,8 +919,13 @@ export function startCRTMonitor(
   }
 
 
+  // ==========================================================
+  // CHECK AUTO ALERTS
+  // ==========================================================
+
   if (
-    CRT_CONFIG.autoAlerts === false
+    CRT_CONFIG.autoAlerts ===
+    false
   ) {
     console.log(
       "[CRT] Automatic CRT alerts are disabled."
@@ -751,20 +935,80 @@ export function startCRTMonitor(
   }
 
 
-  const interval =
+  // ==========================================================
+  // CHECK DISCORD CLIENT
+  // ==========================================================
+
+  if (!client) {
+    console.error(
+      "[CRT] Cannot start monitor: Discord client is missing."
+    );
+
+    return;
+  }
+
+
+  // ==========================================================
+  // CHECK INTERVAL
+  // ==========================================================
+
+  const configuredInterval =
     Number(
-      CRT_CONFIG.checkInterval ||
-      5000
+      CRT_CONFIG.checkInterval
+    );
+
+  const interval =
+    Number.isFinite(
+      configuredInterval
+    ) &&
+    configuredInterval >=
+      1000
+      ? configuredInterval
+      : 5000;
+
+
+  if (
+    interval !==
+    configuredInterval
+  ) {
+    console.warn(
+      `[CRT] Invalid checkInterval "${CRT_CONFIG.checkInterval}". Using 5000ms.`
+    );
+  }
+
+
+  // ==========================================================
+  // GET TIMEFRAMES
+  // ==========================================================
+
+  const timeframes =
+    Object.keys(
+      TIMEFRAMES
     );
 
 
-  const timeframes =
-    Object.keys(TIMEFRAMES);
+  if (
+    timeframes.length === 0
+  ) {
+    console.error(
+      "[CRT] No CRT timeframes configured."
+    );
 
+    return;
+  }
+
+
+  // ==========================================================
+  // MARK MONITOR AS STARTED
+  // ==========================================================
 
   crtMonitorStarted =
     true;
 
+
+  // ==========================================================
+  // STARTUP LOG
+  // ==========================================================
 
   console.log(
     "[CRT] Monitor started."
@@ -775,6 +1019,10 @@ export function startCRTMonitor(
   );
 
   console.log(
+    `[CRT] Check interval: ${interval}ms`
+  );
+
+  console.log(
     `[CRT] Timeframes: ${
       timeframes.join(", ")
     }`
@@ -782,16 +1030,17 @@ export function startCRTMonitor(
 
 
   // ==========================================================
-  // SHOW CHANNEL CONFIGURATION
+  // CHANNEL CONFIGURATION LOG
   // ==========================================================
 
   for (
     const timeframe
     of timeframes
   ) {
-
     const channelId =
-      CHANNELS[timeframe];
+      CHANNELS[
+        timeframe
+      ];
 
     console.log(
       `[CRT] ${timeframe} → ${
@@ -803,7 +1052,7 @@ export function startCRTMonitor(
 
 
   // ==========================================================
-  // TRACK LAST CANDLE
+  // TRACK PREVIOUS CANDLES
   // ==========================================================
 
   const previousCandleKeys =
@@ -811,22 +1060,37 @@ export function startCRTMonitor(
 
 
   // ==========================================================
+  // STARTUP BASELINE
+  // ==========================================================
+  //
   // IMPORTANT:
   //
-  // On startup we establish the CURRENT candle as the
-  // baseline.
+  // We register the CURRENT candle when the bot starts.
   //
-  // We DO NOT send an alert for it.
+  // We DO NOT send an alert.
   //
-  // This prevents Railway restarts from creating duplicate
-  // alerts.
+  // Therefore:
+  //
+  // Railway restart
+  //       ↓
+  // Current candle registered
+  //       ↓
+  // No alert
+  //
+  // When the next candle starts:
+  //
+  // New timestamp
+  //       ↓
+  // New candle detected
+  //       ↓
+  // Discord alert
+  //
   // ==========================================================
 
   for (
     const timeframe
     of timeframes
   ) {
-
     try {
 
       const current =
@@ -857,7 +1121,7 @@ export function startCRTMonitor(
 
 
   // ==========================================================
-  // CHECK ALL TIMEFRAMES
+  // CRT CHECKER
   // ==========================================================
 
   const checkCRT =
@@ -913,11 +1177,14 @@ export function startCRTMonitor(
           );
 
 
+          // ====================================================
+          // SEND DISCORD ALERT
+          // ====================================================
+
           await sendCRTAlert(
             client,
             timeframe
           );
-
 
         } catch (error) {
 
@@ -931,7 +1198,7 @@ export function startCRTMonitor(
 
 
   // ==========================================================
-  // CONTINUE MONITORING
+  // RUN MONITOR
   // ==========================================================
 
   setInterval(
@@ -951,7 +1218,9 @@ export function getAllCRTStatuses() {
 
   for (
     const timeframe
-    of Object.keys(TIMEFRAMES)
+    of Object.keys(
+      TIMEFRAMES
+    )
   ) {
 
     statuses[timeframe] =
@@ -978,6 +1247,7 @@ console.log(
 
 console.log(
   `[CRT] Timeframes: ${
-    getAvailableCRTTimeframes().join(", ")
+    getAvailableCRTTimeframes()
+      .join(", ")
   }`
 );
