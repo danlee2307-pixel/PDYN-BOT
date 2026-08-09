@@ -18,6 +18,7 @@ import botConfig from "../../config/bot.js";
 // - Remaining candle time
 // - Automatic Discord alerts
 // - Separate Discord channel for each timeframe
+// - Waits for a NEW candle after bot restart
 //
 // Does NOT yet detect:
 // - High / Low
@@ -334,6 +335,7 @@ export function getCurrentCRT(
     now.day;
 
 
+  // Candle crosses midnight.
   if (endTotalMinutes >= 1440) {
     const nextDay =
       getNextDay(
@@ -655,6 +657,7 @@ async function sendCRTAlert(
   timeframe
 ) {
   try {
+
     const channelId =
       CHANNELS[timeframe];
 
@@ -681,9 +684,6 @@ async function sendCRTAlert(
       return;
     }
 
-
-    const crt =
-      getCurrentCRT(timeframe);
 
     const embed =
       createCRTEmbed(timeframe);
@@ -727,6 +727,7 @@ export function startCRTMonitor(
   client
 ) {
 
+  // Prevent duplicate monitors.
   if (crtMonitorStarted) {
     console.warn(
       "[CRT] Monitor is already running."
@@ -736,6 +737,7 @@ export function startCRTMonitor(
   }
 
 
+  // CRT disabled.
   if (
     CRT_CONFIG.enabled === false
   ) {
@@ -747,6 +749,7 @@ export function startCRTMonitor(
   }
 
 
+  // Automatic alerts disabled.
   if (
     CRT_CONFIG.autoAlerts === false
   ) {
@@ -781,7 +784,6 @@ export function startCRTMonitor(
     `[CRT] Timezone: ${CRT_TIMEZONE}`
   );
 
-
   console.log(
     `[CRT] Timeframes: ${
       timeframes.join(", ")
@@ -813,9 +815,70 @@ export function startCRTMonitor(
   // ==========================================================
   // TRACK LAST CANDLE
   // ==========================================================
+  //
+  // IMPORTANT:
+  //
+  // We initialize each timeframe with the CURRENT candle.
+  //
+  // This means:
+  //
+  // Railway restarts at 10:07
+  // ---------------
+  // 5M  → current candle 10:05
+  // 15M → current candle 10:00
+  //
+  // The bot WILL NOT send those candles.
+  //
+  // It waits until:
+  //
+  // 10:10 → NEW 5M candle
+  // 10:15 → NEW 15M candle
+  //
+  // ==========================================================
 
   const previousCandleKeys =
     new Map();
+
+
+  // ==========================================================
+  // INITIALIZE CURRENT CANDLES
+  // ==========================================================
+
+  for (
+    const timeframe
+    of timeframes
+  ) {
+
+    try {
+
+      const currentCRT =
+        getCurrentCRT(
+          timeframe
+        );
+
+
+      const currentCandleKey =
+        `${timeframe}_${currentCRT.startTimestamp}`;
+
+
+      previousCandleKeys.set(
+        timeframe,
+        currentCandleKey
+      );
+
+
+      console.log(
+        `[CRT] ${timeframe} current candle registered: ${currentCandleKey}`
+      );
+
+    } catch (error) {
+
+      console.error(
+        `[CRT] Failed to initialize ${timeframe}:`,
+        error
+      );
+    }
+  }
 
 
   // ==========================================================
@@ -848,7 +911,35 @@ export function startCRTMonitor(
             );
 
 
-          // Same candle.
+          // ====================================================
+          // NO PREVIOUS CANDLE
+          // ====================================================
+          //
+          // Safety fallback.
+          //
+          // If somehow the timeframe was not initialized,
+          // register it without sending an alert.
+          //
+
+          if (!previous) {
+
+            previousCandleKeys.set(
+              timeframe,
+              candleKey
+            );
+
+            console.log(
+              `[CRT] ${timeframe} initialized without alert.`
+            );
+
+            continue;
+          }
+
+
+          // ====================================================
+          // SAME CANDLE
+          // ====================================================
+
           if (
             previous ===
             candleKey
@@ -857,19 +948,31 @@ export function startCRTMonitor(
           }
 
 
-          // Save current candle.
+          // ====================================================
+          // NEW CANDLE DETECTED
+          // ====================================================
+
+          console.log(
+            `[CRT] NEW ${timeframe} CANDLE DETECTED`
+          );
+
+
+          // Save the new candle BEFORE sending.
+          //
+          // This prevents duplicate alerts if the send
+          // operation takes longer than expected.
+
           previousCandleKeys.set(
             timeframe,
             candleKey
           );
 
 
-          // Send alert.
+          // Send the alert for the NEW candle.
           await sendCRTAlert(
             client,
             timeframe
           );
-
 
         } catch (error) {
 
@@ -883,10 +986,18 @@ export function startCRTMonitor(
 
 
   // ==========================================================
-  // INITIAL CHECK
+  // DO NOT ALERT ON STARTUP
   // ==========================================================
-
-  checkCRT();
+  //
+  // IMPORTANT:
+  //
+  // We intentionally DO NOT call checkCRT() here.
+  //
+  // The current candles were already registered above.
+  //
+  // The monitor simply waits for the next candle.
+  //
+  // ==========================================================
 
 
   // ==========================================================
