@@ -1,112 +1,185 @@
 import { Events } from "discord.js";
-import { logger, startupLog } from "../utils/logger.js";
+import {
+  logger,
+  startupLog,
+} from "../utils/logger.js";
 import config from "../config/application.js";
-import { reconcileReactionRoleMessages } from "../services/reactionRoleService.js";
+import {
+  reconcileReactionRoleMessages,
+} from "../services/reactionRoleService.js";
 import {
   reconcileTicketPanels,
   reconcileVerificationPanels,
   reconcileReactionRolePanelHealth,
 } from "../services/panelHealthService.js";
-import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
-import { initRiffyAfterReady } from "../services/music/riffySetup.js";
-import { startCRTMonitor } from "../services/crt/crtService.js";
-
+import {
+  reconcileLevelRoles,
+} from "../services/leveling/levelRoleSyncService.js";
+import {
+  initRiffyAfterReady,
+} from "../services/music/riffySetup.js";
+import {
+  startCRTMonitor,
+} from "../services/crt/crtService.js";
+// ============================================================
+// DISCORD CLIENT READY EVENT
+// ============================================================
 export default {
   name: Events.ClientReady,
   once: true,
-
   async execute(client) {
     try {
-      client.user.setPresence(config.bot.presence);
-
+      // ========================================================
+      // BOT PRESENCE
+      // ========================================================
+      client.user.setPresence(
+        config.bot.presence
+      );
+      // ========================================================
+      // STARTUP INFORMATION
+      // ========================================================
       startupLog(
         `Ready! Logged in as ${client.user.tag}`
       );
-
       startupLog(
         `Serving ${client.guilds.cache.size} guild(s)`
       );
-
       startupLog(
         `Loaded ${client.commands.size} commands`
       );
-
-      // ======================================================
-      // CRT MONITOR
-      // ======================================================
-
-      if (client.config?.features?.crt) {
-        startCRTMonitor(client);
-
+      // ========================================================
+      // CRT TRADING SYSTEM
+      // ========================================================
+      //
+      // CRT is controlled by:
+      //
+      // config.bot.features.crt
+      //
+      // and:
+      //
+      // config.bot.crt.enabled
+      //
+      // The CRT service itself also checks:
+      //
+      // autoAlerts
+      //
+      // ========================================================
+      if (
+        client.config?.features?.crt === true
+      ) {
+        startCRTMonitor(
+          client
+        );
         startupLog(
           "CRT monitor started."
         );
+      } else {
+        startupLog(
+          "CRT monitor is disabled."
+        );
       }
-
-      // ======================================================
-      // MUSIC
-      // ======================================================
-
-      if (client.config?.features?.music) {
-        initRiffyAfterReady(client);
+      // ========================================================
+      // MUSIC SYSTEM
+      // ========================================================
+      if (
+        client.config?.features?.music === true
+      ) {
+        initRiffyAfterReady(
+          client
+        );
+        startupLog(
+          "Music system initialized."
+        );
+      } else {
+        startupLog(
+          "Music system is disabled."
+        );
       }
-
-      // ======================================================
+      // ========================================================
       // REACTION ROLES
-      // ======================================================
-
+      // ========================================================
       const reconciliationSummary =
-        await reconcileReactionRoleMessages(client);
-
+        await reconcileReactionRoleMessages(
+          client
+        );
       startupLog(
-        `Reaction role reconciliation: scanned ${reconciliationSummary.scannedMessages}, removed ${reconciliationSummary.removedMessages}, errors ${reconciliationSummary.errors}`
+        `Reaction role reconciliation: ` +
+        `scanned ${reconciliationSummary.scannedMessages}, ` +
+        `removed ${reconciliationSummary.removedMessages}, ` +
+        `errors ${reconciliationSummary.errors}`
       );
-
-      // ======================================================
+      // ========================================================
       // TICKET PANELS
-      // ======================================================
-
+      // ========================================================
       const ticketPanelSummary =
-        await reconcileTicketPanels(client);
-
+        await reconcileTicketPanels(
+          client
+        );
       startupLog(
-        `Ticket panel health: scanned ${ticketPanelSummary.scannedGuilds} guilds, healthy ${ticketPanelSummary.healthyPanels}, deleted ${ticketPanelSummary.deletedPanels}, missing channel ${ticketPanelSummary.missingChannels}, recovered ${ticketPanelSummary.recoveredIds}, errors ${ticketPanelSummary.errors}`
+        `Ticket panel health: ` +
+        `scanned ${ticketPanelSummary.scannedGuilds} guilds, ` +
+        `healthy ${ticketPanelSummary.healthyPanels}, ` +
+        `deleted ${ticketPanelSummary.deletedPanels}, ` +
+        `missing channel ${ticketPanelSummary.missingChannels}, ` +
+        `recovered ${ticketPanelSummary.recoveredIds}, ` +
+        `errors ${ticketPanelSummary.errors}`
       );
-
-      // ======================================================
+      // ========================================================
       // VERIFICATION PANELS
-      // ======================================================
-
+      // ========================================================
       const verificationPanelSummary =
-        await reconcileVerificationPanels(client);
-
+        await reconcileVerificationPanels(
+          client
+        );
       startupLog(
-        `Verification panel health: scanned ${verificationPanelSummary.scannedGuilds} guilds, healthy ${verificationPanelSummary.healthyPanels}, deleted ${verificationPanelSummary.deletedPanels}, missing channel ${verificationPanelSummary.missingChannels}, recovered ${verificationPanelSummary.recoveredIds}, errors ${verificationPanelSummary.errors}`
+        `Verification panel health: ` +
+        `scanned ${verificationPanelSummary.scannedGuilds} guilds, ` +
+        `healthy ${verificationPanelSummary.healthyPanels}, ` +
+        `deleted ${verificationPanelSummary.deletedPanels}, ` +
+        `missing channel ${verificationPanelSummary.missingChannels}, ` +
+        `recovered ${verificationPanelSummary.recoveredIds}, ` +
+        `errors ${verificationPanelSummary.errors}`
       );
-
-      // ======================================================
+      // ========================================================
       // REACTION ROLE PANEL HEALTH
-      // ======================================================
-
+      // ========================================================
       const reactionRolePanelSummary =
-        await reconcileReactionRolePanelHealth(client);
-
+        await reconcileReactionRolePanelHealth(
+          client
+        );
       startupLog(
-        `Reaction role panel health: scanned ${reactionRolePanelSummary.scannedPanels} panels, healthy ${reactionRolePanelSummary.healthyPanels}, deleted ${reactionRolePanelSummary.deletedPanels}, missing channel ${reactionRolePanelSummary.missingChannels}, recovered ${reactionRolePanelSummary.recoveredIds}, errors ${reactionRolePanelSummary.errors}`
+        `Reaction role panel health: ` +
+        `scanned ${reactionRolePanelSummary.scannedPanels} panels, ` +
+        `healthy ${reactionRolePanelSummary.healthyPanels}, ` +
+        `deleted ${reactionRolePanelSummary.deletedPanels}, ` +
+        `missing channel ${reactionRolePanelSummary.missingChannels}, ` +
+        `recovered ${reactionRolePanelSummary.recoveredIds}, ` +
+        `errors ${reactionRolePanelSummary.errors}`
       );
-
-      // ======================================================
+      // ========================================================
       // LEVEL ROLES
-      // ======================================================
-
+      // ========================================================
       const levelRoleSummary =
-        await reconcileLevelRoles(client);
-
+        await reconcileLevelRoles(
+          client
+        );
       startupLog(
-        `Level role sync: scanned ${levelRoleSummary.scannedGuilds} guilds, pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, re-awarded ${levelRoleSummary.rolesReAwarded} roles, errors ${levelRoleSummary.errors}`
+        `Level role sync: ` +
+        `scanned ${levelRoleSummary.scannedGuilds} guilds, ` +
+        `pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, ` +
+        `re-awarded ${levelRoleSummary.rolesReAwarded} roles, ` +
+        `errors ${levelRoleSummary.errors}`
       );
-
+      // ========================================================
+      // READY COMPLETE
+      // ========================================================
+      startupLog(
+        "All startup systems initialized successfully."
+      );
     } catch (error) {
+      // ========================================================
+      // READY EVENT ERROR
+      // ========================================================
       logger.error(
         "Error in ready event:",
         error
