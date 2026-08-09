@@ -175,7 +175,7 @@ export const botConfig = {
       "30m": 30,
       "1h": 60,
       "4h": 240,
-      "1D": 1440,
+      "1d": 1440,
     },
     // Discord channel for each CRT timeframe
       channels: {
