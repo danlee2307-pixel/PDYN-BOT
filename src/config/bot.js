@@ -179,7 +179,14 @@ export const botConfig = {
     },
 
     // Discord channel that will receive CRT alerts
-    channelId: process.env.CRT_CHANNEL_ID || null,
+    channels: {
+                "5m": "DISCORD_CHANNEL_ID_5M",
+                "15m": "DISCORD_CHANNEL_ID_15M",
+                "30m": "DISCORD_CHANNEL_ID_30M",
+                "1h": "DISCORD_CHANNEL_ID_1H",
+                "4h": "DISCORD_CHANNEL_ID_4H",
+                "1d": "DISCORD_CHANNEL_ID_1D",
+},
 
     // Automatically announce new CRT candles
     autoAlerts: true,
